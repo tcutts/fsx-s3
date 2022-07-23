@@ -37,14 +37,11 @@ export class FsxS3Stack extends Stack {
         deploymentType: fsx.LustreDeploymentType.PERSISTENT_1,
         exportPath: bucket.s3UrlForObject(),
         importPath: bucket.s3UrlForObject(),
+        autoImportPolicy: fsx.LustreAutoImportPolicy.NEW_CHANGED_DELETED,
         perUnitStorageThroughput: 50,
       },
       removalPolicy: RemovalPolicy.DESTROY,
     });
-
-    const lfs = lustrefs.node.defaultChild;
-
-    console.log(lfs);
 
     const inst = new ec2.Instance(this, "inst", {
       instanceType: ec2.InstanceType.of(
