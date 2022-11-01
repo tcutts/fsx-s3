@@ -1,0 +1,1 @@
+@reboot root /usr/local/bin/lctl_settings.sh
