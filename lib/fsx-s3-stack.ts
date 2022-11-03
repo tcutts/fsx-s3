@@ -5,9 +5,7 @@ import { Asset } from "aws-cdk-lib/aws-s3-assets";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as fsx from "aws-cdk-lib/aws-fsx";
 import * as iam from "aws-cdk-lib/aws-iam";
-
 interface FsxS3StackProps extends StackProps {
-  ubuntu?: boolean,
 }
 export class FsxS3Stack extends Stack {
   constructor(scope: Construct, id: string, props?: FsxS3StackProps) {
@@ -41,27 +39,36 @@ export class FsxS3Stack extends Stack {
       vpcSubnet: vpc.privateSubnets[0],
       storageCapacityGiB: 1200,
       lustreConfiguration: {
-        deploymentType: fsx.LustreDeploymentType.SCRATCH_2,
-        exportPath: bucket.s3UrlForObject(),
-        importPath: bucket.s3UrlForObject(),
-        autoImportPolicy: fsx.LustreAutoImportPolicy.NEW_CHANGED_DELETED,
+        deploymentType: fsx.LustreDeploymentType.PERSISTENT_2,
+        perUnitStorageThroughput: 1000,
         dataCompressionType: fsx.LustreDataCompressionType.LZ4,
       },
       removalPolicy: RemovalPolicy.DESTROY,
     });
 
-    const machineImage = props?.ubuntu ?
-      ec2.MachineImage.fromSsmParameter(
-        '/aws/service/canonical/ubuntu/server/focal/stable/current/amd64/hvm/ebs-gp2/ami-id',
-        { os: ec2.OperatingSystemType.LINUX }
-      ) : new ec2.AmazonLinuxImage({
-        generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2,
-      });
+    // Create a DRA between the filesystem and the bucket
+    const dra = new fsx.CfnDataRepositoryAssociation(this, 'DRA', {
+      dataRepositoryPath: `s3://${bucket.bucketName}/`,
+      fileSystemId: lustrefs.fileSystemId,
+      fileSystemPath: '/',
+      s3: {
+        autoImportPolicy: {
+          events: ['NEW', 'CHANGED', 'DELETED'],
+        },
+        autoExportPolicy: {
+          events: ['NEW', 'CHANGED', 'DELETED'],
+        }
+      }
+    })
+
+    const machineImage = new ec2.AmazonLinuxImage({
+      generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2,
+    });
 
     const inst = new ec2.Instance(this, "inst", {
       instanceType: ec2.InstanceType.of(
-        ec2.InstanceClass.C5,
-        ec2.InstanceSize.XLARGE18
+        ec2.InstanceClass.C6I,
+        ec2.InstanceSize.XLARGE8
       ),
       machineImage,
       vpc,
@@ -72,8 +79,10 @@ export class FsxS3Stack extends Stack {
       init: this.createCloudInit(),
     });
 
+    // Security Group needs to allow connections from instance to lustre
     lustrefs.connections.allowDefaultPortFrom(inst);
 
+    // Instance needs access to FSx APIs
     inst.role.addManagedPolicy(
       iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonFSxFullAccess")
     );
@@ -90,23 +99,10 @@ export class FsxS3Stack extends Stack {
     var user = 'ec2-user';
     var group = 'ec2-user';
 
-    inst.userData.addCommands("set -eux");
-    if (props?.ubuntu) {
-      user = "ubuntu";
-      group = "ubuntu";
-      inst.userData.addCommands(
-        "apt -y update && apt -y upgrade",
-        "wget -O - https://fsx-lustre-client-repo-public-keys.s3.amazonaws.com/fsx-ubuntu-public-key.asc | gpg --dearmor | sudo tee /usr/share/keyrings/fsx-ubuntu-public-key.gpg >/dev/null",
-        "echo 'deb [signed-by=/usr/share/keyrings/fsx-ubuntu-public-key.gpg] https://fsx-lustre-client-repo.s3.amazonaws.com/ubuntu jammy main' > /etc/apt/sources.list.d/fsxlustreclientrepo.list && apt-get -y update",
-        "apt install -y linux-aws lustre-client-modules-aws",
-      );
-    } else {
-      inst.userData.addCommands(
-        "yum update -y",
-        "amazon-linux-extras install -y lustre",
-      );
-    }
     inst.userData.addCommands(
+      "set -eux",
+      "yum update -y",
+      "amazon-linux-extras install -y lustre",
       `mkdir -p ${mountPath}`,
       `chmod 770 ${mountPath}`,
       `chown ${user}:${group} ${mountPath}`,
@@ -120,6 +116,10 @@ export class FsxS3Stack extends Stack {
 
     new CfnOutput(this, "InstanceID", {
       value: inst.instanceId,
+    })
+
+    new CfnOutput(this, 'FS mountname', {
+      value: mountName,
     })
   }
 
