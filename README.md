@@ -1,14 +1,4 @@
-# Welcome to your CDK TypeScript project
+# S3 and FSx for Lustre
 
-This is a blank project for CDK development with TypeScript.
-
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
-
-## Useful commands
-
-* `npm run build`   compile typescript to js
-* `npm run watch`   watch for changes and compile
-* `npm run test`    perform the jest unit tests
-* `cdk deploy`      deploy this stack to your default AWS account/region
-* `cdk diff`        compare deployed stack with current state
-* `cdk synth`       emits the synthesized CloudFormation template
+This stack illustrates creating an S3 bucket with an FSx for Lustre filesystem as a high performance cache.
+It also creates a small instance so that you can log in and use the filesytem.
