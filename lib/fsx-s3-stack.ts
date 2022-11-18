@@ -65,11 +65,8 @@ export class FsxS3Stack extends Stack {
       generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2,
     });
 
-    const inst = new ec2.Instance(this, "inst", {
-      instanceType: ec2.InstanceType.of(
-        ec2.InstanceClass.C6I,
-        ec2.InstanceSize.XLARGE8
-      ),
+    const inst = new ec2.Instance(this, "Inst", {
+      instanceType: new ec2.InstanceType("t2.micro"),
       machineImage,
       vpc,
       vpcSubnets: {
