@@ -51,8 +51,8 @@ export class FsxS3Stack extends Stack {
 
     const machineImage = props?.ubuntu ?
       ec2.MachineImage.fromSsmParameter(
-        '/aws/service/canonical/ubuntu/server/focal/stable/current/amd64/hvm/ebs-gp2/ami-id',
-        { os: ec2.OperatingSystemType.LINUX}
+        '/aws/service/canonical/ubuntu/server/jammy/stable/current/amd64/hvm/ebs-gp2/ami-id',
+        { os: ec2.OperatingSystemType.LINUX},
       ) : new ec2.AmazonLinuxImage({
         generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2,
       });
