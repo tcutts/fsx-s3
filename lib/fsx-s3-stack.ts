@@ -76,7 +76,7 @@ export class FsxS3Stack extends Stack {
       init: this.createCloudInit(),
     });
 
-    // Security Group needs to allow connections from instance to lustre
+    // Allow connections from instance to lustre
     lustrefs.connections.allowDefaultPortFrom(inst);
 
     // Instance needs access to FSx APIs
@@ -84,8 +84,7 @@ export class FsxS3Stack extends Stack {
       iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonFSxFullAccess")
     );
 
-    // Allow console connection through Systems Manager.  Look, Ma, no
-    // bastion host needed, but still on a private subnet...
+    // Allow console connection through Systems Manager.
     inst.role.addManagedPolicy(
       iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonSSMManagedInstanceCore")
     );
@@ -104,7 +103,6 @@ export class FsxS3Stack extends Stack {
       `chmod 770 ${mountPath}`,
       `chown ${user}:${group} ${mountPath}`,
       `echo "${dnsName}@tcp:/${mountName} ${mountPath} lustre defaults,noatime,flock,_netdev 0 0" >> /etc/fstab`,
-      "# mount -a",
       // Best practice settings for large HPC instances
       "echo \"options ptlrpc ptlrpcd_per_cpt_max=32\" >> /etc/modprobe.d/modprobe.conf",
       "echo \"options ksocklnd credits=2560\" >> /etc/modprobe.d/modprobe.conf",
