@@ -1,17 +1,16 @@
-// import * as cdk from 'aws-cdk-lib';
-// import { Template } from 'aws-cdk-lib/assertions';
-// import * as FsxS3 from '../lib/fsx-s3-stack';
+import * as cdk from 'aws-cdk-lib';
+import { Template } from 'aws-cdk-lib/assertions';
+import * as FsxS3 from '../lib/fsx-s3-stack';
 
-// example test. To run these tests, uncomment this file along with the
-// example resource in lib/fsx-s3-stack.ts
-test('SQS Queue Created', () => {
-//   const app = new cdk.App();
-//     // WHEN
-//   const stack = new FsxS3.FsxS3Stack(app, 'MyTestStack');
-//     // THEN
-//   const template = Template.fromStack(stack);
+test('Resources created', () => {
+    const app = new cdk.App();
+    const stack = new FsxS3.FsxS3Stack(app, 'MyTestStack');
+    const template = Template.fromStack(stack);
 
-//   template.hasResourceProperties('AWS::SQS::Queue', {
-//     VisibilityTimeout: 300
-//   });
+    template.resourceCountIs('AWS::EC2::Instance', 1);
+    template.resourceCountIs('AWS::S3::Bucket', 1);
+    template.hasResourceProperties('AWS::FSx::FileSystem', {
+        "FileSystemType": "LUSTRE",
+    });
+    template.resourceCountIs('AWS::FSx::DataRepositoryAssociation', 1);
 });
