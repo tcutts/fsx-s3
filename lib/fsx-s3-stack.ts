@@ -15,23 +15,21 @@ export class FsxS3Stack extends Stack {
       maxAzs: 1,
     });
 
+    const tieringConfiguration: s3.IntelligentTieringConfiguration = {
+      name: "TierConfig",
+      archiveAccessTierTime: Duration.days(90),
+      deepArchiveAccessTierTime: Duration.days(180)
+    }
+
     const bucket = new s3.Bucket(this, "BackingBucket", {
       objectOwnership: s3.ObjectOwnership.BUCKET_OWNER_ENFORCED,
+      intelligentTieringConfigurations: [ tieringConfiguration ],
+
       // Do not use the following two lines in production
       // better to import an existing bucket so that CloudFormation
       // cannot accidentally destroy it
       removalPolicy: RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
-      lifecycleRules: [
-        {
-          transitions: [
-            {
-              storageClass: s3.StorageClass.INFREQUENT_ACCESS,
-              transitionAfter: Duration.days(30),
-            },
-          ],
-        },
-      ],
     });
 
     const lustrefs = new fsx.LustreFileSystem(this, "Lustre", {
