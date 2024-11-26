@@ -1,4 +1,4 @@
-import { CfnOutput, Duration, RemovalPolicy, Stack, StackProps } from "aws-cdk-lib";
+import { CfnOutput, CfnParameter, Duration, RemovalPolicy, Stack, StackProps } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import { Asset } from "aws-cdk-lib/aws-s3-assets";
@@ -21,16 +21,27 @@ export class FsxS3Stack extends Stack {
       deepArchiveAccessTierTime: Duration.days(180)
     }
 
-    const bucket = new s3.Bucket(this, "BackingBucket", {
-      objectOwnership: s3.ObjectOwnership.BUCKET_OWNER_ENFORCED,
-      intelligentTieringConfigurations: [ tieringConfiguration ],
+    const bucketName = new CfnParameter(this, "BucketName", {
+      description: "Backing Bucket Name"
+    }).valueAsString
 
-      // Do not use the following two lines in production
-      // better to import an existing bucket so that CloudFormation
-      // cannot accidentally destroy it
-      removalPolicy: RemovalPolicy.DESTROY,
-      autoDeleteObjects: true,
-    });
+    var bucket
+
+    if (bucketName != "") {
+      bucket = s3.Bucket.fromBucketName(this, "BackingBucket", bucketName)
+    } else {
+
+      bucket = new s3.Bucket(this, "BackingBucket", {
+        objectOwnership: s3.ObjectOwnership.BUCKET_OWNER_ENFORCED,
+        intelligentTieringConfigurations: [tieringConfiguration],
+
+        // Do not use the following two lines in production
+        // better to import an existing bucket so that CloudFormation
+        // cannot accidentally destroy it
+        removalPolicy: RemovalPolicy.DESTROY,
+        autoDeleteObjects: true,
+      });
+    }
 
     const lustrefs = new fsx.LustreFileSystem(this, "Lustre", {
       vpc: vpc,
