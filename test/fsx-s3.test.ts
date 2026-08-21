@@ -1,3 +1,4 @@
+import { test, expect } from 'vitest';
 import * as cdk from 'aws-cdk-lib';
 import { Template } from 'aws-cdk-lib/assertions';
 import * as FsxS3 from '../lib/fsx-s3-stack';
